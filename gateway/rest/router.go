@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -32,6 +31,7 @@ import (
 	manifestValidation "github.com/akash-network/akash-api/go/manifest/v2beta2"
 	dtypes "github.com/akash-network/akash-api/go/node/deployment/v1beta3"
 	mtypes "github.com/akash-network/akash-api/go/node/market/v1beta4"
+
 	"github.com/akash-network/node/util/wsutil"
 
 	"github.com/akash-network/provider"
@@ -44,8 +44,6 @@ import (
 	"github.com/akash-network/provider/gateway/utils"
 	pmanifest "github.com/akash-network/provider/manifest"
 	ipoptypes "github.com/akash-network/provider/operator/ipoperator/types"
-
-	v1 "github.com/akash-network/akash-api/go/inventory/v1"
 )
 
 type CtxAuthKey string
@@ -533,49 +531,53 @@ func createStatusHandler(log log.Logger, sclient provider.StatusClient, provider
 	}
 }
 
-func createFeaturesHandler(log log.Logger, sclient provider.StatusClient, providerAddr sdk.Address) http.HandlerFunc {
+func createFeaturesHandler(log log.Logger, _ provider.StatusClient, _ sdk.Address) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-
-		// URLs slice and use in range allows execution in both dev and prod
-		urls := []string{
-			"http://inventory-operator.akash-services.svc.cluster.local:8081/getClusterState",
-			"http://localhost:8081/getClusterState",
-		}
-
-		var resp *http.Response
-		var err error
-		for _, url := range urls {
-			resp, err = http.Get(url)
-			if err != nil {
-				fmt.Printf("Failed to get '%s': %v\n", url, err)
-				continue
-			}
-			defer resp.Body.Close()
-			break
-		}
-
-		if err != nil {
-			fmt.Printf("All attempts failed: %v\n", err)
-			return
-		}
-
-		defer resp.Body.Close()
-
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		var clusterState v1.Cluster
-		err = json.Unmarshal(bodyBytes, &clusterState)
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		fmt.Println("clusterState: ", clusterState)
-
-		writeJSON(log, w, clusterState)
-
+		// // URLs slice and use in range allows execution in both dev and prod
+		// urls := []string{
+		// 	"http://inventory-operator.akash-services.svc.cluster.local:8081/getClusterState",
+		// 	"http://localhost:8081/getClusterState",
+		// }
+		//
+		// var resp *http.Response
+		// var err error
+		// for _, u := range urls {
+		// 	resp, err = http.Get(u)
+		// 	if err != nil {
+		// 		fmt.Printf("Failed to get '%s': %v\n", u, err)
+		// 		continue
+		// 	}
+		//
+		// 	break
+		// }
+		//
+		// defer func() {
+		// 	_ = resp.Body.Close()
+		// }()
+		//
+		// if err != nil {
+		// 	fmt.Printf("All attempts failed: %v\n", err)
+		// 	return
+		// }
+		//
+		// defer func() {
+		// 	_ = resp.Body.Close()
+		// }()
+		//
+		// bodyBytes, err := io.ReadAll(resp.Body)
+		// if err != nil {
+		// 	fmt.Println(err)
+		// }
+		//
+		// var clusterState inventory.Cluster
+		// err = json.Unmarshal(bodyBytes, &clusterState)
+		// if err != nil {
+		// 	fmt.Println(err)
+		// }
+		//
+		// fmt.Println("clusterState: ", clusterState)
+		//
+		// writeJSON(log, w, clusterState)
 	}
 }
 

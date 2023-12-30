@@ -104,17 +104,17 @@ type ceph struct {
 	exe    RemotePodCommandExecutor
 	ctx    context.Context
 	cancel context.CancelFunc
-	querier
+	querierStorage
 }
 
-func NewCeph(ctx context.Context) (Storage, error) {
+func NewCeph(ctx context.Context) (QuerierStorage, error) {
 	ctx, cancel := context.WithCancel(ctx)
 
 	c := &ceph{
-		exe:     NewRemotePodCommandExecutor(KubeConfigFromCtx(ctx), KubeClientFromCtx(ctx)),
-		ctx:     ctx,
-		cancel:  cancel,
-		querier: newQuerier(),
+		exe:            NewRemotePodCommandExecutor(KubeConfigFromCtx(ctx), KubeClientFromCtx(ctx)),
+		ctx:            ctx,
+		cancel:         cancel,
+		querierStorage: newQuerierStorage(),
 	}
 
 	group := ErrGroupFromCtx(ctx)
@@ -136,6 +136,8 @@ func (c *ceph) crdInstalled(log logr.Logger, rc *rookclientset.Clientset) bool {
 		}
 	}
 
+	// rc := rookclient.New()
+	// rc.CephV1().CephClusters("").List()
 	return false
 }
 
@@ -152,7 +154,7 @@ func (c *ceph) run() error {
 	clusters := make(cephClusters)
 	scs := make(cephStorageClasses)
 
-	scrapeData := resp{
+	scrapeData := respStorage{
 		res: nil,
 		err: errCephInventoryInProgress,
 	}
@@ -171,6 +173,14 @@ func (c *ceph) run() error {
 	informer := factory.Ceph().V1().CephClusters().Informer()
 
 	crdDiscoverTick := time.NewTicker(1 * time.Second)
+
+	// snapshot2v1 := func() inventory.ClusterStorage {
+	// 	res := make(inventory.ClusterStorage, 0, len(scs))
+	//
+	// 	for name, sc := range scs {
+	// 	}
+	// 	return res
+	// }
 
 	for {
 		select {
@@ -261,7 +271,7 @@ func (c *ceph) run() error {
 		case req := <-c.reqch:
 			req.respCh <- scrapeData
 		case res := <-scrapech:
-			r := resp{}
+			r := respStorage{}
 			if err := res.Error(); err != nil {
 				r.err = errCephInventoryInProgress
 				log.Error(err, "unable to pull ceph status")

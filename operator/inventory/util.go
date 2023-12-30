@@ -93,11 +93,29 @@ func ErrGroupFromCtx(ctx context.Context) *errgroup.Group {
 	return val.(*errgroup.Group)
 }
 
-func StorageFromCtx(ctx context.Context) []Storage {
+func StorageFromCtx(ctx context.Context) []QuerierStorage {
 	val := ctx.Value(CtxKeyStorage)
 	if val == nil {
 		panic("context does not have storage set")
 	}
 
-	return val.([]Storage)
+	return val.([]QuerierStorage)
+}
+
+func FeatureDiscoveryFromCtx(ctx context.Context) QuerierNodes {
+	val := ctx.Value(CtxKeyFeatureDiscovery)
+	if val == nil {
+		panic("context does not have storage set")
+	}
+
+	return val.(QuerierNodes)
+}
+
+func HWInfoFromCtx(ctx context.Context) hwInfo {
+	val := ctx.Value(CtxKeyHwInfo)
+	if val == nil {
+		panic("context does not have file reader set")
+	}
+
+	return val.(hwInfo)
 }

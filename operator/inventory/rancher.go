@@ -21,7 +21,7 @@ type rancher struct {
 	exe    RemotePodCommandExecutor
 	ctx    context.Context
 	cancel context.CancelFunc
-	querier
+	querierStorage
 }
 
 type rancherStorage struct {
@@ -32,14 +32,14 @@ type rancherStorage struct {
 
 type rancherStorageClasses map[string]*rancherStorage
 
-func NewRancher(ctx context.Context) (Storage, error) {
+func NewRancher(ctx context.Context) (QuerierStorage, error) {
 	ctx, cancel := context.WithCancel(ctx)
 
 	r := &rancher{
-		exe:     NewRemotePodCommandExecutor(KubeConfigFromCtx(ctx), KubeClientFromCtx(ctx)),
-		ctx:     ctx,
-		cancel:  cancel,
-		querier: newQuerier(),
+		exe:            NewRemotePodCommandExecutor(KubeConfigFromCtx(ctx), KubeClientFromCtx(ctx)),
+		ctx:            ctx,
+		cancel:         cancel,
+		querierStorage: newQuerierStorage(),
 	}
 
 	group := ErrGroupFromCtx(ctx)
@@ -190,7 +190,7 @@ func (c *rancher) run() error {
 				}
 			}
 		case req := <-c.reqch:
-			var resp resp
+			var resp respStorage
 
 			if pvSynced {
 				var res []akashv2beta2.InventoryClusterStorage

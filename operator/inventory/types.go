@@ -3,6 +3,7 @@ package inventory
 import (
 	"context"
 
+	inventory "github.com/akash-network/akash-api/go/inventory/v1"
 	"github.com/cskr/pubsub"
 
 	rookexec "github.com/rook/rook/pkg/util/exec"
@@ -14,13 +15,16 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	providerflags "github.com/akash-network/provider/cmd/provider-services/cmd/flags"
-	akashv2beta1 "github.com/akash-network/provider/pkg/apis/akash.network/v2beta2"
+	akashv2beta2 "github.com/akash-network/provider/pkg/apis/akash.network/v2beta2"
 )
 
 const (
 	FlagAPITimeout   = "api-timeout"
 	FlagQueryTimeout = "query-timeout"
-	FlagAPIPort      = "api-port"
+	FlagRESTPort     = "rest-port"
+	FlagGRPCPort     = "grpc-port"
+	FlagPodName      = "pod-name"
+	FlagNodeName     = "node-name"
 )
 
 type ContextKey string
@@ -34,31 +38,52 @@ const (
 	CtxKeyLifecycle        = ContextKey("lifecycle")
 	CtxKeyErrGroup         = ContextKey("errgroup")
 	CtxKeyStorage          = ContextKey("storage")
+	CtxKeyFeatureDiscovery = ContextKey("feature-discovery")
 	CtxKeyInformersFactory = ContextKey("informers-factory")
+	CtxKeyHwInfo           = ContextKey("hardware-info")
 )
 
-type resp struct {
-	res []akashv2beta1.InventoryClusterStorage
+type respStorage struct {
+	res []akashv2beta2.InventoryClusterStorage
 	err error
 }
 
-type req struct {
-	respCh chan resp
+type respNodes struct {
+	res inventory.Nodes
+	err error
 }
 
-type querier struct {
-	reqch chan req
+type reqStorage struct {
+	respCh chan respStorage
 }
 
-func newQuerier() querier {
-	return querier{
-		reqch: make(chan req, 100),
+type reqNodes struct {
+	respCh chan respNodes
+}
+
+type querierStorage struct {
+	reqch chan reqStorage
+}
+
+type querierNodes struct {
+	reqch chan reqNodes
+}
+
+func newQuerierStorage() querierStorage {
+	return querierStorage{
+		reqch: make(chan reqStorage, 100),
 	}
 }
 
-func (c *querier) Query(ctx context.Context) ([]akashv2beta1.InventoryClusterStorage, error) {
-	r := req{
-		respCh: make(chan resp, 1),
+func newQuerierNodes() querierNodes {
+	return querierNodes{
+		reqch: make(chan reqNodes, 100),
+	}
+}
+
+func (c *querierStorage) Query(ctx context.Context) ([]akashv2beta2.InventoryClusterStorage, error) {
+	r := reqStorage{
+		respCh: make(chan respStorage, 1),
 	}
 
 	select {
@@ -75,8 +100,31 @@ func (c *querier) Query(ctx context.Context) ([]akashv2beta1.InventoryClusterSto
 	}
 }
 
-type Storage interface {
-	Query(ctx context.Context) ([]akashv2beta1.InventoryClusterStorage, error)
+func (c *querierNodes) Query(ctx context.Context) (inventory.Nodes, error) {
+	r := reqNodes{
+		respCh: make(chan respNodes, 1),
+	}
+
+	select {
+	case c.reqch <- r:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
+	select {
+	case rsp := <-r.respCh:
+		return rsp.res, rsp.err
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
+type QuerierStorage interface {
+	Query(ctx context.Context) ([]akashv2beta2.InventoryClusterStorage, error)
+}
+
+type QuerierNodes interface {
+	Query(ctx context.Context) (inventory.Nodes, error)
 }
 
 type Watcher interface {
@@ -126,6 +174,7 @@ func InformKubeObjects(ctx context.Context, pubsub *pubsub.PubSub, informer cach
 		}
 
 		informer.Run(ctx.Done())
+
 		return nil
 	})
 }

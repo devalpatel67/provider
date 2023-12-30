@@ -11,3 +11,9 @@ patches:
       group: apps
       name: inventory-operator
       version: v1
+  - path: docker-image.yaml
+    target:
+      kind: DaemonSet
+      group: apps
+      name: feature-discovery-node
+      version: v1

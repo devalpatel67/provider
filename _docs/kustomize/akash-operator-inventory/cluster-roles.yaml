@@ -62,3 +62,30 @@ rules:
       - get
       - list
       - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: feature-discovery-node
+  labels:
+    akash.network: "true"
+    app.kubernetes.io/name: feature-discovery-node
+    app.kubernetes.io/component: inventory
+    app.kubernetes.io/part-of: operator
+rules:
+  - apiGroups:
+      - ''
+    resources:
+      - nodes
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ''
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch

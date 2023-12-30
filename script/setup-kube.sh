@@ -120,7 +120,7 @@ install_crd() {
     set -x
     kubectl apply -f "$CRD_FILE"
     kubectl apply -f "$rootdir/_docs/kustomize/storage/storageclass.yaml"
-    kubectl patch node "${KIND_NAME}-control-plane" -p '{"metadata":{"labels":{"akash.network/storageclasses":"beta2.default"}}}'
+    kubectl patch node "${KIND_NAME}-control-plane" -p '{"metadata":{"labels":{"akash.network":"true","akash.network/storageclasses":"beta2.default"}}}'
 }
 
 install_metrics() {

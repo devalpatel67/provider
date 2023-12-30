@@ -1,3 +1,40 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: inventory-operator
+  labels:
+    akash.network: "true"
+    app.kubernetes.io/name: akash
+    app.kubernetes.io/instance: inventory
+    app.kubernetes.io/component: operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: inventory-operator
+subjects:
+  - kind: ServiceAccount
+    name: inventory-operator
+    namespace: akash-services
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: feature-discovery-node
+  labels:
+    akash.network: "true"
+    app.kubernetes.io/name: feature-discovery-node
+    app.kubernetes.io/component: inventory
+    app.kubernetes.io/part-of: operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: feature-discovery-node
+subjects:
+  - kind: ServiceAccount
+    name: feature-discovery-node
+    namespace: akash-services
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
